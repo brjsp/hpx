@@ -82,6 +82,19 @@ void copy_algo_tests_with_policy(std::size_t size, std::size_t localities,
 }
 
 template <typename T, typename DistPolicy, typename ExPolicy>
+void copy_n_algo_tests_with_policy(std::size_t size, std::size_t localities,
+    DistPolicy const& policy, ExPolicy const& copy_policy)
+{
+    hpx::partitioned_vector<T> v1(size, policy);
+    fill_vector(v1, T(43));
+
+    hpx::partitioned_vector<T> v2(size, policy);
+    auto p = hpx::parallel::copy_n(copy_policy, v1.begin(), size, v2.begin());
+    HPX_TEST(p.out() == v2.end());
+    compare_vectors(v1, v2);
+}
+
+template <typename T, typename DistPolicy, typename ExPolicy>
 void copy_algo_tests_with_policy_async(std::size_t size, std::size_t localities,
     DistPolicy const& policy, ExPolicy const& copy_policy)
 {
@@ -93,6 +106,23 @@ void copy_algo_tests_with_policy_async(std::size_t size, std::size_t localities,
     hpx::partitioned_vector<T> v2(size, policy);
     auto f = hpx::parallel::copy(
         copy_policy(task), v1.begin(), v1.end(), v2.begin());
+
+    HPX_TEST(f.get().out() == v2.end());
+    compare_vectors(v1, v2);
+}
+
+template <typename T, typename DistPolicy, typename ExPolicy>
+void copy_n_algo_tests_with_policy_async(std::size_t size, std::size_t localities,
+    DistPolicy const& policy, ExPolicy const& copy_policy)
+{
+    hpx::partitioned_vector<T> v1(size, policy);
+    fill_vector(v1, T(43));
+
+    using hpx::parallel::execution::task;
+
+    hpx::partitioned_vector<T> v2(size, policy);
+    auto f = hpx::parallel::copy_n(
+        copy_policy(task), v1.begin(), size, v2.begin());
 
     HPX_TEST(f.get().out() == v2.end());
     compare_vectors(v1, v2);
@@ -122,8 +152,14 @@ void copy_tests_with_policy(std::size_t size, std::size_t localities,
     copy_algo_tests_with_policy<T>(size, localities, policy, seq);
     copy_algo_tests_with_policy<T>(size, localities, policy, par);
 
+    copy_n_algo_tests_with_policy<T>(size, localities, policy, seq);
+    copy_n_algo_tests_with_policy<T>(size, localities, policy, par);
+
     copy_algo_tests_with_policy_async<T>(size, localities, policy, seq);
     copy_algo_tests_with_policy_async<T>(size, localities, policy, par);
+
+    copy_n_algo_tests_with_policy_async<T>(size, localities, policy, seq);
+    copy_n_algo_tests_with_policy_async<T>(size, localities, policy, par);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
